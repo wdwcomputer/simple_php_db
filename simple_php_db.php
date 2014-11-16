@@ -48,11 +48,11 @@ define('SPHPDB_COMMENT', 1);						// Column comment.
  * Interface to be implemented in the SimplePhpDb class.
  */
 interface iSimplePhpDb {
-	// Private interfaces
+	// Private methods
 	private function open();
 	private function close();
 	
-	// Public interfaces
+	// Public methods
 	public function select($strSelect);							// Example: $db->select('*');
 	public function insert($arrayInsert);						// Example: $db->insert(array('id' => 1, 'name' => 'Jane Smith'));
 	public function update($arrayUpdate);						// Example: $db->update(array('in_stock' => 15));
@@ -64,4 +64,82 @@ interface iSimplePhpDb {
 	public function direct($strDirectQuery);					// Example: $db->direct("SELECT * FROM ORDERS WHERE order_num = '123'");
 	public function delete();									// Example: $db->delete();
 	public function query();									// Example: $db->query();
+}
+
+/**
+ * This is the primary class for the Simple PHP Database library.
+ */
+class SimplePhpDb implements iSimplePhpDb {
+	
+	private $db;
+	private $connectArgs = array();
+	
+	/**
+	 * Contructor for class. Opens connection to database when implemented.
+	 * 
+	 * @param array $connectArray Connection arguments for PDO connection
+	 * @return boolean TRUE/FALSE
+	 */
+	public function __construct($connectArray) {
+		
+		if (is_array($connectArray)) {
+			$this->connectArgs = $connectArray;
+			return $this->open();
+		}
+		return FALSE;
+		
+	}
+	
+	/**
+	 * PRIVATE: Method to connect to database, and store the handle in $this->db.
+	 * 
+	 * @return boolean TRUE/FALSE
+	 */
+	private function open() {
+		
+		if ($this->connectArgs['connect']) {
+			$connect = $this->prepareConnectString($this->connectArgs['connect']);
+			$username = (isset($this->connectArgs['user']) ? $this->connectArgs['user'] : NULL);
+			$passwd = (isset($this->connectArgs['pass']) ? $this->connectArgs['pass'] : NULL);
+			try {
+				$this->db = new PDO($connect, $username, $passwd);
+				return TRUE;
+			} catch (PDOException $e) {
+				die("CONNECT ERROR: " . $e->getCode() . " - " . $e->getMessage());
+			}
+		}
+		
+		return FALSE;
+		
+	}
+	
+	/**
+	 * PRIVATE: Closes the active connection to the database.
+	 * 
+	 * @return boolean TRUE
+	 */
+	private function close() {
+		
+		$this->db = NULL;
+		return true;
+		
+	}
+	
+	/**
+	 * PRIVATE: Replaces directives the connect string with arguments provided by caller.
+	 * 
+	 * @param string $connectString
+	 * @return string Final string used for PDO $dsn connect parameter
+	 */
+	private function prepareConnectString($connectString) {
+		
+		$connectString = (isset($this->connectArgs['host']) ? str_replace(SPHPDB_HOST_STRING, $this->connectArgs['host'], $connectString) : $connectString);
+		$connectString = (isset($this->connectArgs['name']) ? str_replace(SPHPDB_NAME_STRING, $this->connectArgs['name'], $connectString) : $connectString);
+		$connectString = (isset($this->connectArgs['port']) ? str_replace(SPHPDB_PORT_STRING, $this->connectArgs['port'], $connectString) : $connectString);
+		$connectString = (isset($this->connectArgs['path']) ? str_replace(SPHPDB_PATH_STRING, $this->connectArgs['path'], $connectString) : $connectString);
+		$connectString = (isset($this->connectArgs['user']) ? str_replace(SPHPDB_USER_STRING, $this->connectArgs['user'], $connectString) : $connectString);
+		
+		return $connectString;
+	}
+	
 }
